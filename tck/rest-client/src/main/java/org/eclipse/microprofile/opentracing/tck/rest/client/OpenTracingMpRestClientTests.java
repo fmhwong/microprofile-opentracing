@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2017, 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -20,6 +20,8 @@
 package org.eclipse.microprofile.opentracing.tck.rest.client;
 
 import io.opentracing.tag.Tags;
+
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -236,4 +238,15 @@ public class OpenTracingMpRestClientTests extends OpenTracingBaseTests {
           Collections.emptyList()
       );
     }
+    
+    @Override
+    protected String getOperationName(String spanKind, String httpMethod, Class<?> clazz, Method method) {
+        if ((spanKind.equals(Tags.SPAN_KIND_SERVER)) || (spanKind.equals(Tags.SPAN_KIND_CLIENT))) {
+            return String.format("%s:%s.%s", httpMethod, clazz.getName(), method.getName());
+        }
+        else {
+            throw new RuntimeException("Span kind " + spanKind + " not implemented");
+        }
+    }
+
 }

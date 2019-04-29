@@ -72,6 +72,8 @@ public class RestClientServices {
     @Context
     private UriInfo uri;
 
+    private URL baseURL = null;
+    
     @GET
     @Path(REST_MP_REST_CLIENT_DISABLED_TRACING)
     @Produces(MediaType.TEXT_PLAIN)
@@ -133,20 +135,23 @@ public class RestClientServices {
     }
 
     private URL getBaseURL() {
-        String incomingURLValue = uri.getAbsolutePath().toString();
-        int i = incomingURLValue.indexOf(ApplicationUtils.TEST_WEB_SERVICES_CONTEXT_ROOT);
-        if (i == -1) {
-            throw new RuntimeException("Expecting "
-                + ApplicationUtils.TEST_WEB_SERVICES_CONTEXT_ROOT
-                + " in " + incomingURLValue);
+        if (baseURL == null) {
+            String incomingURLValue = uri.getAbsolutePath().toString();
+            int i = incomingURLValue.indexOf(ApplicationUtils.TEST_WEB_SERVICES_CONTEXT_ROOT);
+            if (i == -1) {
+                throw new RuntimeException("Expecting "
+                    + ApplicationUtils.TEST_WEB_SERVICES_CONTEXT_ROOT
+                    + " in " + incomingURLValue);
+            }
+            URL incomingURL;
+            try {
+                incomingURL = new URL(incomingURLValue.substring(0, i));
+            }
+            catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            }
+            baseURL = incomingURL;
         }
-        URL incomingURL;
-        try {
-            incomingURL = new URL(incomingURLValue.substring(0, i));
-        }
-        catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
-        return incomingURL;
+        return baseURL;
     }
 }
