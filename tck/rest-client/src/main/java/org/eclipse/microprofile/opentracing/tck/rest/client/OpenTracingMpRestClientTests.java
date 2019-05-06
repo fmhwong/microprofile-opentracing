@@ -206,7 +206,7 @@ public class OpenTracingMpRestClientTests extends OpenTracingBaseTests {
     protected TestSpan getExpectedNestedServerSpan(String path, String spanKind, int uniqueId,
         int nestDepth, int nestBreadth, boolean failNest,
         boolean isFailed, boolean async) {
-        String operationName;
+        String operationName = null;
         Map<String, Object> expectedTags;
 
         Map<String, Object> queryParameters = new HashMap<>();
@@ -216,12 +216,39 @@ public class OpenTracingMpRestClientTests extends OpenTracingBaseTests {
         queryParameters.put(TestServerWebServices.PARAM_FAIL_NEST, failNest);
         queryParameters.put(TestServerWebServices.PARAM_ASYNC, async);
 
-        operationName = getOperationName(
-            spanKind,
-            HttpMethod.GET,
-            RestClientServices.class,
-            getEndpointMethod(RestClientServices.class, path)
-        );
+        if (spanKind.equals(Tags.SPAN_KIND_SERVER))  {
+            operationName = getOperationName(
+                spanKind,
+                HttpMethod.GET,
+                RestClientServices.class,
+                getEndpointMethod(RestClientServices.class, path)
+            );
+        } 
+        else if (spanKind.equals(Tags.SPAN_KIND_CLIENT)) {
+            Method clientMethod = null;
+            if (async) {
+                try {
+                    clientMethod = ClientServices.class.getMethod("executeNestedAsync", int.class, 
+                            int.class, boolean.class, String.class, boolean.class);
+                } catch (NoSuchMethodException e) {
+                    throw new RuntimeException(e.getMessage());
+                }
+            }
+            else {
+                try {
+                    clientMethod = ClientServices.class.getMethod("executeNested", int.class, 
+                            int.class, boolean.class, String.class, boolean.class);
+                } catch (NoSuchMethodException e) {
+                    throw new RuntimeException(e.getMessage());
+                }
+            }
+            operationName = getOperationName(
+                spanKind,
+                HttpMethod.GET,
+                ClientServices.class,
+                clientMethod
+            );
+        }
         expectedTags = getExpectedSpanTags(
             spanKind,
             HttpMethod.GET,
