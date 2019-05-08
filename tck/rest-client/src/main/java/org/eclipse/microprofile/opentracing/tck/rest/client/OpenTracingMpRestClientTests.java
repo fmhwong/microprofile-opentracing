@@ -19,39 +19,30 @@
 
 package org.eclipse.microprofile.opentracing.tck.rest.client;
 
-import io.opentracing.tag.Tags;
-
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+
 import org.eclipse.microprofile.opentracing.tck.OpenTracingBaseTests;
 import org.eclipse.microprofile.opentracing.tck.application.TestServerWebServices;
-import org.eclipse.microprofile.opentracing.tck.application.TestWebServicesApplication;
 import org.eclipse.microprofile.opentracing.tck.tracer.TestSpan;
 import org.eclipse.microprofile.opentracing.tck.tracer.TestSpanTree;
 import org.eclipse.microprofile.opentracing.tck.tracer.TestSpanTree.TreeNode;
-import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.testng.annotations.Test;
+
+import io.opentracing.tag.Tags;
 
 /**
  * @author Pavol Loffay
  */
-public class OpenTracingMpRestClientTests extends OpenTracingBaseTests {
-
-    @Deployment
-    public static WebArchive createDeployment() {
-        WebArchive deployment = OpenTracingBaseTests.createDeployment();
-        deployment.addPackages(true, OpenTracingMpRestClientTests.class.getPackage());
-        deployment.deleteClass(TestWebServicesApplication.class.getCanonicalName());
-        return deployment;
-    }
+public abstract class OpenTracingMpRestClientTests extends OpenTracingBaseTests {
 
     /**
      * Test a web service call that makes nested calls.
@@ -225,22 +216,14 @@ public class OpenTracingMpRestClientTests extends OpenTracingBaseTests {
             );
         } 
         else if (spanKind.equals(Tags.SPAN_KIND_CLIENT)) {
+            String methodName = async ? "executeNestedAsync" : "executeNested";
             Method clientMethod = null;
-            if (async) {
-                try {
-                    clientMethod = ClientServices.class.getMethod("executeNestedAsync", int.class, 
-                            int.class, boolean.class, String.class, boolean.class);
-                } catch (NoSuchMethodException e) {
-                    throw new RuntimeException(e.getMessage());
-                }
+            try {
+                clientMethod = ClientServices.class.getMethod(methodName, int.class, 
+                        int.class, boolean.class, String.class, boolean.class);
             }
-            else {
-                try {
-                    clientMethod = ClientServices.class.getMethod("executeNested", int.class, 
-                            int.class, boolean.class, String.class, boolean.class);
-                } catch (NoSuchMethodException e) {
-                    throw new RuntimeException(e.getMessage());
-                }
+            catch (NoSuchMethodException e) {
+                throw new RuntimeException(e.getMessage());
             }
             operationName = getOperationName(
                 spanKind,
@@ -266,14 +249,4 @@ public class OpenTracingMpRestClientTests extends OpenTracingBaseTests {
       );
     }
     
-    @Override
-    protected String getOperationName(String spanKind, String httpMethod, Class<?> clazz, Method method) {
-        if ((spanKind.equals(Tags.SPAN_KIND_SERVER)) || (spanKind.equals(Tags.SPAN_KIND_CLIENT))) {
-            return String.format("%s:%s.%s", httpMethod, clazz.getName(), method.getName());
-        }
-        else {
-            throw new RuntimeException("Span kind " + spanKind + " not implemented");
-        }
-    }
-
 }
